@@ -1,16 +1,17 @@
-✅ List of Important Domain Classes (Initial Set)
-| **Domain Class**                                               | **Responsibility**                    | **What to Do**                                         |
-| -------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
-| **Application (Main)**                                         | Starting point of application         | Launch the drawing app, initialize UI and tools        |
-| **Controller / Action Classes** (e.g., DrawAction, SaveAction) | Handle user input events              | Respond to buttons, menus, and tool events             |
-| **DrawingEditor**                                              | Coordinates tools and views           | Manage current tool, views, and drawing state          |
-| **Drawing**                                                    | Domain model container for figures    | Add/remove figures, supports undo/redo                 |
-| **Figure**                                                     | Represents a graphical object         | Draw shape, change position, support handles           |
-| **Tool**                                                       | Reacts to user input (mouse/keyboard) | Interpret clicks/drags to create or manipulate figures |
-| **Handle**                                                     | Enable figure manipulation            | Resize/move shapes from the view                       |
-| **Connector**                                                  | Determine connection points           | Used by connection tools to link figures               |
-| **DrawingView**                                                | Visual representation of drawing      | Show figures on screen and handle repaint              |
-| **Data Transfer (Clipboard/IO)**                               | Save/load drawings                    | Handle copy, paste, open and save                      |
-| **GUI Components** (e.g., Frame, Palette)                      | UI interface                          | Render menus, buttons, toolbars                        |
-| **Utility Classes** (Helpers/Utils)                            | Support operations                    | Geometry handling, serialization                       |
-| **Sample App Classes**                                         | Demonstrate framework usage           | Example applications to run/debug                      |
+| **Domain Class**         | **Responsibility**                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| **Drawing**              | Represents the drawing model and stores the figures contained in the drawing.        |
+| **DefaultDrawing**       | Concrete implementation of the drawing model used to manage a collection of figures. |
+| **DrawingEditor**        | Coordinates the active tool, the drawing view, and the editing process.              |
+| **DefaultDrawingEditor** | Concrete editor implementation that manages tools and views during runtime.          |
+| **DrawingView**          | Displays the drawing and supports interaction with figures on screen.                |
+| **DefaultDrawingView**   | Concrete implementation of the drawing view used by the editor.                      |
+| **Figure**               | Abstract representation of a graphical object in the drawing.                        |
+| **RectangleFigure**      | Concrete figure class used to represent rectangles.                                  |
+| **EllipseFigure**        | Concrete figure class used to represent ellipses.                                    |
+| **LineFigure**           | Concrete figure class used to represent lines.                                       |
+| **TextFigure**           | Concrete figure class used to represent text elements.                               |
+| **LineConnectionFigure** | Represents connections between figures.                                              |
+| **Tool**                 | Handles user actions such as selecting, creating, or manipulating figures.           |
+| **Handle**               | Supports direct manipulation of figures, such as resizing or moving them.            |
+| **Connector**            | Defines connection points used when linking figures together.                        |
