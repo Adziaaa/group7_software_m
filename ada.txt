@@ -1,0 +1,1 @@
+As a content creator, I want to perform basic editing actions such as cut, copy, paste, delete, and duplicate elements so that I can efficiently modify and organize my design.
