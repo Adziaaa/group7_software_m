@@ -1,0 +1,1 @@
+As a user, I want to align multiple selected figures to a common edge or center axis (top, bottom, left, right, horizontal center, vertical center), so that I can precisely organize elements in my drawing without repositioning each figure manually.

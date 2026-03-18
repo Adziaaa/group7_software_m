@@ -1,0 +1,10 @@
+## Table 1. Packages visited during impact analysis.
+
+| Package name | # of classes | Comments |
+|---|---|---|
+| `org.jhotdraw.draw.action` | 2 | **Changed.** Contains `AlignAction` (the refactoring target) and `AbstractSelectedAction` (its parent). `AlignAction` is directly modified to extract the duplicated transform loop into a shared helper method. `AbstractSelectedAction` was read to confirm which methods are inherited — it is not changed. |
+| `org.jhotdraw.draw` | 2 | **Propagating.** `DrawingEditor` and `DrawingView` were visited to understand how the action accesses the selected figures at runtime. `getView().getSelectedFigures()` is the entry point for the alignment loop. Neither class is changed, but both guide the implementation. |
+| `org.jhotdraw.draw.figure` | 1 | **Propagating.** The `Figure` interface was read to confirm the contract of `isTransformable()`, `willChange()`, `getBounds()`, `transform()`, and `changed()` — all called inside the duplicated loop. Not changed, but essential for writing correct unit tests. |
+| `org.jhotdraw.draw.event` | 1 | **Propagating.** `TransformEdit` is instantiated inside each duplicated loop to fire an undoable edit event per figure. Reading it confirmed it is a value object wrapping a figure and its transform — safe to keep as-is after refactoring. |
+| `org.jhotdraw.undo` | 1 | **Propagating.** `CompositeEdit` is used in `actionPerformed` to wrap individual `TransformEdit` events into a single undoable group. Not changed — the undo grouping logic stays in the base class. |
+| `org.jhotdraw.samples.svg.gui` | 1 | **Unchanged.** `AlignToolBar` instantiates each `AlignAction` subclass and binds it to a button. Since the public API of each inner class (constructor signature, class name) does not change, this class requires no modification. |
