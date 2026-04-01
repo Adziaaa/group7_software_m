@@ -27,6 +27,35 @@ import org.xml.sax.SAXException;
  * @version $Id$
  */
 public class JavaxDOMInput implements DOMInput {
+    /**
+     * Helper: Returns a list of child Elements of the current node.
+     */
+    private List<Element> getChildElements() {
+        List<Element> elements = new ArrayList<>();
+        NodeList list = current.getChildNodes();
+        for (int i = 0; i < list.getLength(); i++) {
+            Node node = list.item(i);
+            if (node instanceof Element) {
+                elements.add((Element) node);
+            }
+        }
+        return elements;
+    }
+
+    /**
+     * Helper: Returns a list of child Elements of the current node with the given tag name.
+     */
+    private List<Element> getChildElementsByTagName(String tagName) {
+        List<Element> elements = new ArrayList<>();
+        NodeList list = current.getChildNodes();
+        for (int i = 0; i < list.getLength(); i++) {
+            Node node = list.item(i);
+            if (node instanceof Element && ((Element) node).getTagName().equals(tagName)) {
+                elements.add((Element) node);
+            }
+        }
+        return elements;
+    }
 
     /**
      * This map is used to unmarshall references to objects to
@@ -190,15 +219,7 @@ public class JavaxDOMInput implements DOMInput {
      */
     @Override
     public int getElementCount() {
-        int count = 0;
-        NodeList list = current.getChildNodes();
-        for (int i = 0; i < list.getLength(); i++) {
-            Node node = list.item(i);
-            if ((node instanceof Element)) {
-                count++;
-            }
-        }
-        return count;
+        return getChildElements().size();
     }
 
     /**
@@ -207,16 +228,7 @@ public class JavaxDOMInput implements DOMInput {
      */
     @Override
     public int getElementCount(String tagName) {
-        int count = 0;
-        NodeList list = current.getChildNodes();
-        for (int i = 0; i < list.getLength(); i++) {
-            Node node = list.item(i);
-            if ((node instanceof Element)
-                    && ((Element) node).getTagName().equals(tagName)) {
-                count++;
-            }
-        }
-        return count;
+        return getChildElementsByTagName(tagName).size();
     }
 
     /**
@@ -224,18 +236,11 @@ public class JavaxDOMInput implements DOMInput {
      */
     @Override
     public void openElement(int index) {
-        int count = 0;
-        NodeList list = current.getChildNodes();
-        int len = list.getLength();
-        for (int i = 0; i < len; i++) {
-            Node node = list.item(i);
-            if ((node instanceof Element)) {
-                if (count++ == index) {
-                    current = node;
-                    return;
-                }
-            }
+        List<Element> elements = getChildElements();
+        if (index < 0 || index >= elements.size()) {
+            throw new IllegalArgumentException("no such child element at index " + index);
         }
+        current = elements.get(index);
     }
 
     /**
@@ -243,18 +248,11 @@ public class JavaxDOMInput implements DOMInput {
      */
     @Override
     public void openElement(String tagName) {
-        int count = 0;
-        NodeList list = current.getChildNodes();
-        int len = list.getLength();
-        for (int i = 0; i < len; i++) {
-            Node node = list.item(i);
-            if ((node instanceof Element)
-                    && ((Element) node).getTagName().equals(tagName)) {
-                current = node;
-                return;
-            }
+        List<Element> elements = getChildElementsByTagName(tagName);
+        if (elements.isEmpty()) {
+            throw new IllegalArgumentException("element not found: " + tagName);
         }
-        throw new IllegalArgumentException("element not found:" + tagName);
+        current = elements.get(0);
     }
 
     /**
@@ -263,20 +261,11 @@ public class JavaxDOMInput implements DOMInput {
      */
     @Override
     public void openElement(String tagName, int index) {
-        int count = 0;
-        NodeList list = current.getChildNodes();
-        int len = list.getLength();
-        for (int i = 0; i < len; i++) {
-            Node node = list.item(i);
-            if ((node instanceof Element)
-                    && ((Element) node).getTagName().equals(tagName)) {
-                if (count++ == index) {
-                    current = node;
-                    return;
-                }
-            }
+        List<Element> elements = getChildElementsByTagName(tagName);
+        if (index < 0 || index >= elements.size()) {
+            throw new IllegalArgumentException("no such child " + tagName + "[" + index + "]");
         }
-        throw new IllegalArgumentException("no such child " + tagName + "[" + index + "]");
+        current = elements.get(index);
     }
 
     /**
