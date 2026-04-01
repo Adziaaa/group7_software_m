@@ -124,24 +124,3 @@ Any future fix (such as resolving the incomplete `CompositeEdit` undo grouping f
 in the existing `XXX` comment) now requires a change in exactly one place.
 
 ---
-
-### Review Questions
-
-**1. Definition of Refactoring:**  
-Refactoring is the process of restructuring existing source code — changing its internal 
-structure — without altering its observable external behavior. It is done through a 
-sequence of small, behavior-preserving transformations, each leaving the system in a 
-working state [Ker05].
-
-**2. What are Refactoring Patterns?**  
-Refactoring patterns are named, reusable strategies for common refactoring situations. 
-They go beyond simple mechanical transforms (like Extract Method) to describe how to 
-move code toward a well-known design pattern incrementally and safely, as described 
-in [Ker05].
-
-**3. How do you identify code smells? Give examples.**  
-Code smells are identified by reading source code and recognizing structural symptoms 
-that suggest deeper problems. Tools like SonarLint can flag them automatically. 
-Common examples: **Duplicated Code** (same logic in multiple places), **Long Method** 
-(a method that does too much), **Large Class** (a class with too many responsibilities), 
-**Feature Envy** (a method that uses another class's data more than its own).
