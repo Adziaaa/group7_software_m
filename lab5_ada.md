@@ -4,16 +4,12 @@
 
 What is Clean Architecture?
 Clean Architecture is a design approach introduced by Robert C. Martin that organizes software into layers with strict dependency rules.
-👉 The key idea:
+The key idea:
 Inner layers (business logic) should not depend on outer layers (frameworks, UI, databases).
 
 What is a Case Study?
 A case study is:
 A real or simulated system/project that you analyze, design, and improve using software engineering principles.
-
-Here is a **short, direct, submission-ready version** 👇
-
----
 
 # **1. Provide examples of the SOLID principles in the CASE study (JHotDraw)**
 
