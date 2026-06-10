@@ -34,61 +34,11 @@ The dependency direction is respected: the outer `UndoAction` depends inward on 
 
 ## Improved implementation
 
-The existing code already exhibits several SOLID properties (as described above). The following excerpts show how the implementation can be strengthened so that the principles are expressed more explicitly. Only the affected members are shown; the remainder of the class is unchanged.
+The refactoring chosen for this feature targets the **Duplicated Code** smell in `UndoRedoManager` and consolidates it through Extract Method and a parameterised inner action. The excerpts below show the changes that were actually applied, each read through the Clean Architecture lens — that is, in terms of *which layer the change touches* and *how it affects the inward direction of dependencies*. All three changes are confined to the interface-adapters / application layer (`UndoRedoManager`); none alters the domain entities (`UndoableEdit` and the model) or the outer UI layer, so the layering and the inward dependency rule are preserved by construction. Only the affected members are shown; the remainder of the class is unchanged.
 
-### Strengthening DIP and OCP — depending on an abstraction, open for extension
+### Change 1 — Extracting the tracking concern (`runTracked`)
 
-In the original `UndoAction`, the menu hook resolves the real action directly from the view's action map by a hard-coded string key:
-
-**Before**
-
-```java
-@Override
-public void actionPerformed(ActionEvent e) {
-    Action realUndoAction = getRealUndoAction();
-    if (realUndoAction != null && realUndoAction != this) {
-        realUndoAction.actionPerformed(e);
-    }
-}
-
-private Action getRealUndoAction() {
-    return (getActiveView() == null)
-            ? null
-            : getActiveView().getActionMap().get(ID);
-}
-```
-
-**After**
-
-```java
-@Override
-public void actionPerformed(ActionEvent e) {
-    resolveDelegate().ifPresent(action -> action.actionPerformed(e));
-}
-
-/**
- * Resolves the concrete undo action registered by the active view, if any.
- * The menu hook depends only on the Action abstraction and on the View
- * contract; it has no knowledge of which concrete class performs the undo
- * (Dependency Inversion). New view implementations may register their own
- * undo action under the same ID without modifying this class (Open/Closed).
- */
-private Optional<Action> resolveDelegate() {
-    if (getActiveView() == null) {
-        return Optional.empty();
-    }
-    Action delegate = getActiveView().getActionMap().get(ID);
-    return (delegate == null || delegate == this)
-            ? Optional.empty()
-            : Optional.of(delegate);
-}
-```
-
-The dependency on the concrete undo implementation is still expressed only through the `Action` abstraction and the `View` contract, but the resolution is now isolated in one named method that documents the DIP/OCP intent and removes the repeated null/self checks.
-
-### Strengthening SRP — separating the tracking concern
-
-The `undo()`, `redo()`, and `undoOrRedo()` methods in `UndoRedoManager` each mix two responsibilities: performing the operation and managing the in-progress tracking flag. Extracting the tracking concern gives each method a single reason to change.
+The `undo()`, `redo()`, and `undoOrRedo()` methods each repeated the same guard: set the in-progress flag, run the corresponding `super` operation in a `try`, then clear the flag and refresh the actions in a `finally`. The shared logic was extracted into one private helper.
 
 **Before**
 
@@ -110,10 +60,9 @@ public void undo() throws CannotUndoException {
 
 ```java
 /**
- * Performs an undo/redo operation while suppressing incoming edits and
- * refreshing the action state. The state-tracking responsibility lives
- * here alone, so the public operations are responsible only for selecting
- * which super operation to run (Single Responsibility).
+ * Runs an undo/redo operation while suppressing incoming UndoableEdit
+ * events, and refreshes the action state afterwards. Centralises the
+ * guard logic previously duplicated in undo(), redo() and undoOrRedo().
  */
 private void runTracked(Runnable operation) {
     undoOrRedoInProgress = true;
@@ -141,17 +90,120 @@ public void undoOrRedo() throws CannotUndoException, CannotRedoException {
 }
 ```
 
-### Strengthening ISP and LSP — programming to the narrow edit contract
+In Clean Architecture terms, this change is wholly internal to the application layer. The use case the manager coordinates — "perform an undo/redo while the model is guarded against re-entrant edits" — is unchanged; only its implementation is now expressed once. Because `runTracked` is private, the change is invisible to both the outer UI layer and the inner domain, so no dependency crosses a layer boundary as a result of it.
 
-The manager operates on edits only through the narrow `UndoableEdit` interface, which exposes just the operations a reversible edit requires. Any conforming edit can be substituted without affecting the manager, satisfying both Interface Segregation (clients depend only on the methods they use) and Liskov Substitution (any `UndoableEdit` behaves correctly in place of another).
+### Change 2 — Extracting the action-state update (`configureActionState`)
+
+`updateActions()` previously contained two mirror-image blocks, one per action, each enabling/disabling the action and setting its presentation name. The shared work was extracted into a parameterised helper.
+
+**Before**
+
+```java
+private void updateActions() {
+    String label;
+    if (canUndo()) {
+        undoAction.setEnabled(true);
+        label = getUndoPresentationName();
+    } else {
+        undoAction.setEnabled(false);
+        label = labels.getString("edit.undo.text");
+    }
+    undoAction.putValue(Action.NAME, label);
+    undoAction.putValue(Action.SHORT_DESCRIPTION, label);
+    // the redo block repeats the same structure
+}
+```
+
+**After**
+
+```java
+private void updateActions() {
+    configureActionState(undoAction, canUndo(),
+            getUndoPresentationName(), "edit.undo.text");
+    configureActionState(redoAction, canRedo(),
+            getRedoPresentationName(), "edit.redo.text");
+}
+
+/**
+ * Enables or disables the given action and sets its name and short
+ * description. Centralises the logic previously duplicated for the
+ * undo and redo actions.
+ */
+private void configureActionState(Action action, boolean available,
+        String presentationName, String disabledLabelKey) {
+    String label = available ? presentationName : labels.getString(disabledLabelKey);
+    action.setEnabled(available);
+    action.putValue(Action.NAME, label);
+    action.putValue(Action.SHORT_DESCRIPTION, label);
+}
+```
+
+This is the point where the application layer talks *outward* to the delivery mechanism, and the refactoring keeps that conversation correctly directed at an abstraction. The helper is typed against the framework's `javax.swing.Action` interface, not against the concrete inner action class, so the manager updates presentation state without depending on a concrete UI widget. The outward reference remains to a stable contract (`Action`), consistent with Clean Architecture's rule that any outward reference should be to an abstraction.
+
+### Change 3 — Unifying the two inner actions (`UndoRedoAction`)
+
+The near-identical `UndoAction` and `RedoAction` inner classes were collapsed into a single class parameterised by a label key and a `Runnable`.
+
+**Before**
+
+```java
+private class UndoAction extends AbstractAction {
+    public UndoAction() {
+        labels.configureAction(this, "edit.undo");
+        setEnabled(false);
+    }
+    @Override
+    public void actionPerformed(ActionEvent evt) {
+        try { undo(); }
+        catch (CannotUndoException e) { /* log */ }
+    }
+}
+// RedoAction is structurally identical, differing only in the label
+// key ("edit.redo") and the operation invoked (redo()).
+```
+
+**After**
 
 ```java
 /**
- * The manager depends only on the UndoableEdit abstraction. It never
- * refers to a concrete edit type, so any implementation — a figure edit,
- * a composite edit, or a test double — can be added and undone/redone
- * interchangeably (Interface Segregation, Liskov Substitution).
+ * A single parameterised action for both undo and redo. The label key
+ * and the operation to run are supplied at construction, removing the
+ * duplication between the former UndoAction and RedoAction classes.
  */
+private class UndoRedoAction extends AbstractAction {
+    private final Runnable operation;
+
+    UndoRedoAction(String labelKey, Runnable operation) {
+        this.operation = operation;
+        labels.configureAction(this, labelKey);
+        setEnabled(false);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent evt) {
+        try {
+            operation.run();
+        } catch (CannotUndoException | CannotRedoException e) {
+            System.err.println("Cannot perform operation: " + e);
+        }
+    }
+}
+```
+
+with construction becoming:
+
+```java
+undoAction = new UndoRedoAction("edit.undo", this::undo);
+redoAction = new UndoRedoAction("edit.redo", this::redo);
+```
+
+These inner actions are the application layer's adapter to the Swing UI. The unified `UndoRedoAction` receives its behaviour as a `Runnable` injected at construction, so the action object no longer hard-codes *which* operation it triggers; the dependency on the specific undo-vs-redo behaviour is supplied from outside the action rather than baked into a dedicated class. The action therefore depends only on the `Runnable` abstraction, keeping the adapter thin and pointing its dependency inward at the operation it is given.
+
+### Why the domain layer is untouched
+
+The innermost layer — the `UndoableEdit` objects and the model they modify — is deliberately absent from the changes above. The manager continues to operate on edits only through the narrow `UndoableEdit` contract (`undo()`, `redo()`, `canUndo()`, `canRedo()`), exactly as before:
+
+```java
 @Override
 public boolean addEdit(UndoableEdit anEdit) {
     if (undoOrRedoInProgress) {
@@ -167,14 +219,13 @@ public boolean addEdit(UndoableEdit anEdit) {
 }
 ```
 
-> Note: these excerpts assume a Java 8 (or later) source level for the lambda, method-reference, and `Optional` usage, consistent with the project's build configuration.
+That this method needed no change is the point: a refactoring confined to the application layer left the domain contract — and therefore the inward dependency on it — completely stable. This is the separation Clean Architecture aims for, where churn in an outer or middle layer does not ripple into the core.
 
-## How the principles map to the implementation
+## How the refactoring maps to the architecture
 
-| Principle | Expressed by |
-|---|---|
-| Single Responsibility | `runTracked(...)` isolates the tracking concern; each public operation only selects its super call. |
-| Open/Closed | `UndoRedoManager` extends `UndoManager`; new views register an undo action under the same `ID` without editing `UndoAction`. |
-| Liskov Substitution | Overrides honor the `UndoManager` contract; any `UndoableEdit` is interchangeable. |
-| Interface Segregation | Dependence on the narrow `UndoableEdit` and `Action` contracts, not large general-purpose types. |
-| Dependency Inversion | `UndoAction` resolves its delegate through the `Action`/`View` abstractions, never a concrete manager. |
+| Change | Layer affected | Clean Architecture effect |
+|---|---|---|
+| `runTracked(...)` extraction | Application (`UndoRedoManager`) | Use case implementation consolidated; private, so no layer boundary is crossed. |
+| `configureActionState(...)` extraction | Application → UI boundary | Presentation state updated through the `Action` abstraction, not a concrete widget. |
+| `UndoRedoAction` unification | Application adapter to Swing | Behaviour injected as a `Runnable`; the adapter depends on an abstraction, not a fixed operation. |
+| `addEdit(...)` (unchanged) | Application ↔ Domain boundary | Domain `UndoableEdit` contract left stable; inward dependency unaffected by the refactoring. |

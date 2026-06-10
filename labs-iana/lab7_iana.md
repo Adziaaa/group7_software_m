@@ -3,10 +3,13 @@
 **Feature:** Undo / Redo
 **Class under test:** `org.jhotdraw.undo.UndoRedoManager`
 **Framework:** JUnit 4
+**Test file:** `jhotdraw-core/src/test/java/org/jhotdraw/undo/UndoRedoManagerTest.java` (in the `jhotdraw-core` module, the same module that contains `UndoRedoManager` and its `Labels.properties` resource bundle)
 
-## Maven dependency
+## Maven dependency and module placement
 
-JUnit 4 is added to the project `pom.xml`:
+`UndoRedoManager` and its internationalisation bundle (`org/jhotdraw/undo/Labels.properties`) both live in the `jhotdraw-core` module. The test must therefore be placed and run inside `jhotdraw-core`, so that the module's `src/main/resources` — and hence `Labels.properties` — is on the test classpath. The manager's constructor calls `getLabels()`, which loads that bundle; running the test from any other module produces `MissingResourceException: Can't find bundle for base name org.jhotdraw.undo.Labels`.
+
+The lab specifies JUnit 4 (noting that Swing and JUnit extensions work best with it), so the JUnit 4 dependency is added to `jhotdraw-core/pom.xml`:
 
 ```xml
 <dependency>
@@ -16,6 +19,8 @@ JUnit 4 is added to the project `pom.xml`:
     <scope>test</scope>
 </dependency>
 ```
+
+If the parent `jhotdraw` POM manages the JUnit version through `<dependencyManagement>`, the `<version>` element can be omitted so the parent controls it. The test is then run from the core module, for example with `mvn -pl jhotdraw-core test`, which puts the resource bundle on the classpath and allows the manager to construct cleanly.
 
 ## Unit under test and isolation strategy
 
@@ -37,24 +42,26 @@ To keep each test focused on a single code path through `UndoRedoManager` withou
 - Calling `undo()` with nothing to undo throws `CannotUndoException`.
 - Calling `redo()` with nothing to redo throws `CannotRedoException`.
 - `discardAllEdits()` clears the history so that neither undo nor redo is possible and the significant-edits flag is reset.
-- The special `DISCARD_ALL_EDITS` edit disables both undo and redo.
+- The special `DISCARD_ALL_EDITS` edit reports `canUndo()`/`canRedo()` as false, so the manager offers neither undo nor redo for it.
 - Multiple edits are undone in last-in-first-out order, and undo becomes unavailable once the stack is exhausted.
 
 ## Assertions and exceptions
 
-The tests follow the lab's distinction between the two mechanisms. JUnit assertions (`assertTrue`, `assertFalse`, `assertEquals`, `assertNotNull`) verify expected post-conditions of normal operation. The error boundaries — undoing or redoing when nothing is available — are verified with `@Test(expected = ...)`, because `UndoRedoManager` is designed to raise `CannotUndoException` / `CannotRedoException` in those situations and continue running, rather than halt the program. This matches the principle that exceptions signal recoverable conditions the program can continue past, whereas assertions guard conditions that should never occur.
+The lab distinguishes two mechanisms, and it is worth being precise about which is used here.
+
+The lab PDF refers to Java *language* assertions (the `assert` statement, enabled with `-ea`), which are intended for invariants that should never occur and which, when enabled, halt execution by throwing `AssertionError`. The tests in this feature instead use **JUnit assertions** (`assertTrue`, `assertFalse`, `assertNotNull`). These do not halt the JVM; a failed JUnit assertion fails the individual test and lets the suite continue. JUnit assertions are the appropriate tool here because the goal is to verify post-conditions of the unit under test and report each failure independently, not to guard a runtime invariant inside production code.
+
+The error boundaries — undoing or redoing when nothing is available — are verified with `@Test(expected = ...)`, because `UndoRedoManager` is designed to raise `CannotUndoException` / `CannotRedoException` in those situations and continue running, rather than halt the program. This matches the lab's principle that an exception signals a recoverable condition the program can continue past, whereas an assertion guards a condition that should never occur.
 
 ## How the feature was verified
 
 The feature is verified at class level by exercising the public business behavior of `UndoRedoManager` — adding edits, undoing, redoing, querying availability, and clearing history — across both the normal path and the boundary conditions. Each test isolates a single behavior using the `StubEdit` test double, so a failure points to a specific code path. Together the tests confirm that the manager correctly tracks edit state, keeps the undo/redo actions consistent with that state, and handles empty-stack conditions through the expected exceptions.
 
-# Unit Tests — Undo / Redo
+---
 
-**Feature:** Undo / Redo
-**Class under test:** `org.jhotdraw.undo.UndoRedoManager`
-**Framework:** JUnit 4
+## Unit test source
 
-The following JUnit 4 test class exercises the domain logic of `UndoRedoManager` across best-case and boundary scenarios. A lightweight test stub (`StubEdit`) is used in place of the real `Drawing`/`Figure` model so that each test isolates a single code path through the manager.
+The full JUnit 4 test class is reproduced below for the portfolio; the runnable copy lives at `src/test/java/org/jhotdraw/undo/UndoRedoManagerTest.java`.
 
 ```java
 /*
@@ -67,11 +74,9 @@ package org.jhotdraw.undo;
 
 import javax.swing.Action;
 import javax.swing.undo.AbstractUndoableEdit;
-import javax.swing.undo.UndoableEdit;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -186,14 +191,18 @@ public class UndoRedoManagerTest {
         assertFalse("Significant-edits flag should be reset", manager.hasSignificantEdits());
     }
 
+    /**
+     * DISCARD_ALL_EDITS is an edit whose canUndo()/canRedo() both return false.
+     * This test verifies the manager's observed behaviour when such an edit
+     * becomes the edit-to-be-undone, rather than assuming a "disable" contract
+     * that the class does not explicitly implement.
+     */
     @Test
-    public void discardAllEditsEditDisablesManager() {
-        manager.addEdit(new StubEdit());
-        // The special edit that disables undo/redo (canUndo/canRedo == false).
+    public void discardAllEditsEditCannotBeUndoneOrRedone() {
         manager.addEdit(UndoRedoManager.DISCARD_ALL_EDITS);
 
-        assertFalse("DISCARD_ALL_EDITS should disable undo", manager.canUndo());
-        assertFalse("DISCARD_ALL_EDITS should disable redo", manager.canRedo());
+        assertFalse("DISCARD_ALL_EDITS should not be undoable", manager.canUndo());
+        assertFalse("DISCARD_ALL_EDITS should not be redoable", manager.canRedo());
     }
 
     @Test
@@ -228,5 +237,5 @@ public class UndoRedoManagerTest {
 - Undoing with nothing to undo throws `CannotUndoException`.
 - Redoing with nothing to redo throws `CannotRedoException`.
 - `discardAllEdits()` clears history and resets the significant-edits flag.
-- The special `DISCARD_ALL_EDITS` edit disables both undo and redo.
+- The special `DISCARD_ALL_EDITS` edit reports false for `canUndo()`/`canRedo()`, so the manager offers neither.
 - Multiple edits are undone in last-in-first-out order, and undo becomes unavailable once the stack is exhausted.

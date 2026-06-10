@@ -50,7 +50,11 @@ And the earlier edit is reversed second
 
 JGiven structures each scenario into three stage classes — Given, When, Then — whose methods read as the steps of the scenario. The example below uses a lightweight `StubEdit` so the scenarios exercise the undo/redo behavior without depending on the real `Drawing`/`Figure` model, and AssertJ for the assertions.
 
-### Maven dependencies
+### Tools, dependencies and how to run
+
+These scenarios test the **domain behaviour** of `UndoRedoManager` — the edit state and the enablement of the undo/redo actions — rather than driving Swing widgets through the event-dispatch thread. The BDD lab notes that AssertJ-Swing is used for Swing applications, but AssertJ-Swing's role is to automate GUI interaction (locating components, clicking menu items, asserting on rendered widgets). Because these scenarios verify the manager's API directly through a test double, plain **AssertJ** on the manager's state is the appropriate tool; AssertJ-Swing would be the right choice only if the scenarios drove the actual Edit menu through the EDT.
+
+The scenarios are automated with JGiven's JUnit 4 integration, so the test class runs under the JUnit 4 runner:
 
 ```xml
 <dependency>
@@ -66,6 +70,33 @@ JGiven structures each scenario into three stage classes — Given, When, Then �
     <scope>test</scope>
 </dependency>
 ```
+
+Two setup points carry over from the unit-testing lab and are required for these scenarios to execute:
+
+1. **Module placement.** `UndoRedoManager` and its `org/jhotdraw/undo/Labels.properties` bundle both live in `jhotdraw-core`. The scenario class and stages therefore belong in `jhotdraw-core/src/test/java/org/jhotdraw/undo/`, so that the bundle is on the test classpath; the manager's constructor loads it, and running from another module raises `MissingResourceException`.
+
+2. **JUnit 4 Surefire provider.** `jhotdraw-core` inherits a TestNG dependency, and Surefire auto-detects the TestNG provider. JGiven's `ScenarioTest` is JUnit-4-based and will not run under the TestNG provider, so the JUnit 4 provider must be selected explicitly in `jhotdraw-core/pom.xml`:
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.2.5</version>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.maven.surefire</groupId>
+                    <artifactId>surefire-junit4</artifactId>
+                    <version>3.2.5</version>
+                </dependency>
+            </dependencies>
+        </plugin>
+    </plugins>
+</build>
+```
+
+The `surefire-junit4` dependency must be nested inside the surefire plugin's own `<dependencies>` block (not the project dependencies), and the plugin `<version>` must match the Surefire version in use (`3.2.5`). With the provider in place, the run reports the JUnit 4 provider rather than `TestNGProvider`, and the JGiven scenarios execute.
 
 ### Shared test edit
 
@@ -259,3 +290,5 @@ public class UndoRedoBddTest
 ## How the feature was verified
 
 The user story is decomposed into four Given-When-Then scenarios describing the externally observable behavior of undo and redo. Each scenario is automated with JGiven, using reusable Given/When/Then stages and AssertJ assertions, and a test double in place of the real model so each scenario isolates the behavior under description. The scenarios confirm that undo reverses an action, redo re-applies it, the undo action is disabled when there is nothing to undo, and that multiple edits are undone in reverse order — matching the capabilities promised by the user story.
+
+Because these scenarios describe observable behaviour rather than implementation, they are unaffected by the internal refactoring applied to `UndoRedoManager` earlier in the portfolio (the extraction of the `runTracked` guard and the unification of the two action classes into a single parameterised `UndoRedoAction`). That refactoring was behaviour-preserving by design, and the fact that the same four scenarios continue to pass against the refactored class is direct evidence that the externally observable undo/redo behaviour was preserved — which is precisely the property BDD scenarios are meant to protect.

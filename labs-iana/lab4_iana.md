@@ -5,11 +5,11 @@
 
 ## Identified code smell
 
-A SonarLint analysis of `UndoRedoManager` reveals a clear instance of the Duplicated Code smell, occurring in three distinct locations within the class.
+A SonarLint analysis of `UndoRedoManager` reveals a clear instance of the **Duplicated Code** smell — catalogued as the first and most prominent code smell in Chapter 4 of [Ker05] (Fowler's "Duplicated Code") — occurring in three distinct locations within the class.
 
 The first instance is found in the two inner action classes. `UndoAction` and `RedoAction` are structurally near-identical: both define a constructor that configures a label and disables the action, and both implement an `actionPerformed` method that wraps a single call within a try/catch block. The only substantive differences are the label key (`"edit.undo"` versus `"edit.redo"`) and the method invoked (`undo()` versus `redo()`).
 
-The second instance appears in the `updateActions()` method, which contains two mirror-image if/else blocks. One block configures the undo action and the other configures the redo action, but both perform the same operation, differing only in the action referenced and the condition checked (`canUndo()` versus `canRedo()`).
+The second instance appears in the `updateActions()` method, which contains two mirror-image blocks. One block configures the undo action and the other configures the redo action, but both perform the same operation, differing only in the action referenced and the condition checked (`canUndo()` versus `canRedo()`).
 
 The third instance occurs across the `undo()`, `redo()`, and `undoOrRedo()` methods, each of which repeats the same guard logic: setting `undoOrRedoInProgress` to true, invoking the corresponding `super` method within a try block, and resetting the flag while calling `updateActions()` in the finally block. This wrapper is duplicated three times.
 
@@ -25,13 +25,13 @@ The first step addresses the guard logic, as it carries the lowest risk. The rep
 
 The second step targets `updateActions()`. Because the undo and redo blocks perform equivalent work, a single helper method would be extracted, parameterized by the action, its availability, and its labels, and invoked twice in place of the two near-identical inline blocks.
 
-The third step is treated as a candidate rather than a definite transformation. The two inner action classes could be merged into a single parameterized action or unified under a common abstract parent via Form Template Method, since they differ only in a label and the operation invoked. As this change is more invasive, it would be applied only if it could be kept fully behavior-preserving.
+The third step is treated as a candidate rather than a definite transformation. The two inner action classes could be merged into a single parameterized action, since they differ only in a label key and the operation invoked. As this change is more invasive, it would be applied only if it could be kept fully behavior-preserving.
 
 ## Applied refactorings and rationale
 
-The principal refactoring is Extract Method, applied twice: once to the undo/redo guard logic and once to the duplicated blocks within `updateActions()`. This refactoring is selected because it represents a minimal, low-risk transformation that directly resolves the Duplicated Code smell by providing the repeated logic with a single definition.
+The principal refactoring is **Extract Method**, applied twice: once to the undo/redo guard logic and once to the duplicated blocks within `updateActions()`. This refactoring is selected because it represents a minimal, low-risk transformation that directly resolves the Duplicated Code smell by providing the repeated logic with a single definition.
 
-The remaining candidate is Form Template Method, applied to the `UndoAction` and `RedoAction` pair. The rationale is consistent: the two classes are structurally identical, so unifying them would remove the final instance of duplication.
+The remaining candidate addresses the `UndoAction` / `RedoAction` pair. Rather than Form Template Method (which would retain two subclasses and pull a shared `actionPerformed` skeleton into an abstract parent, with subclasses overriding a hook), the two classes are collapsed into one class parameterized by a label key and a `Runnable`. This corresponds to **Parameterize Method** applied at the class level (Kerievsky's "Replace Conditional with Parameterization" family) together with **Extract Class** / unification of similar classes. The rationale is consistent with the other two steps: the two classes are structurally identical apart from two values, so passing those values as constructor arguments removes the final instance of duplication with less code than an abstract-parent hierarchy would require.
 
 ## Justification
 
@@ -178,7 +178,7 @@ private void configureActionState(Action action, boolean available,
 
 The two mirror-image blocks are replaced by two calls to a single helper. The labelling and enable/disable behavior is identical to the original.
 
-### Step 3 (candidate) — Form Template Method on the inner actions
+### Step 3 (candidate) — Parameterize the inner actions into one class
 
 **Before**
 
@@ -250,6 +250,13 @@ undoAction = new UndoRedoAction("edit.undo", this::undo);
 redoAction = new UndoRedoAction("edit.redo", this::redo);
 ```
 
-This removes the last instance of duplication. It is marked as a candidate because it changes the field types (`undoAction`/`redoAction` become `UndoRedoAction`/`Action`) and merges the two exception-handling paths; it should only be adopted once the existing tests confirm the behavior is unchanged.
+and the two fields now sharing a single type:
 
-> Note: these excerpts assume a Java 8 (or later) source level, which is required for the lambda and method-reference syntax used in `runTracked` and in the action construction. This is consistent with the project's build configuration.
+```java
+private UndoRedoAction undoAction;
+private UndoRedoAction redoAction;
+```
+
+This removes the last instance of duplication. It is marked as a candidate because it merges the two exception-handling paths and changes the field types from the former `UndoAction` / `RedoAction` to the unified `UndoRedoAction`; it should only be adopted once the existing tests confirm the behavior is unchanged.
+
+One small deviation is worth noting explicitly: the original `RedoAction` reported failures via `System.out.println` and without a stack trace, while `UndoAction` used `System.err.println` plus `printStackTrace()`. The unified action standardises on `System.err.println` and drops the stack trace, so the diagnostic *output* is unified. No functional behavior of the undo/redo feature is affected — only the channel and verbosity of error logging — but it is recorded here so the change is not mistaken for an accidental regression.
