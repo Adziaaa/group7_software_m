@@ -13,7 +13,7 @@ Analysis
 Lab 3_2 - pipeline in github
 
 What CI is?
-"CI" in English most commonly stands for Continuous Integration in software development, referring to the automated testing and merging of code. It is also widely used as an abbreviation for Confidential Informant (police informer) or Corporate/Competitive Intelligence.
+"CI" in English most commonly stands for Continuous Integration in software development, referring to the automated testing and merging of code.
 Setup a simple CI pipeline.
 in git repo maven.yml first was created
 then in pom.xml extension was added
