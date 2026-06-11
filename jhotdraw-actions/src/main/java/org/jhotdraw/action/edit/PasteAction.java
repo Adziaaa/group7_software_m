@@ -47,7 +47,7 @@ public class PasteAction extends AbstractSelectionAction {
      * Creates a new instance which acts on the specified component.
      *
      * @param target The target of the action. Specify null for the currently
-     * focused component.
+     *               focused component.
      */
     public PasteAction(JComponent target) {
         super(target);

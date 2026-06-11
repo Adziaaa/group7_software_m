@@ -46,7 +46,7 @@ public class CopyAction extends AbstractSelectionAction {
      * Creates a new instance which acts on the specified component.
      *
      * @param target The target of the action. Specify null for the currently
-     * focused component.
+     *               focused component.
      */
     public CopyAction(JComponent target) {
         super(target);
