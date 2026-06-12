@@ -12,3 +12,8 @@
 ## History 
 
 This is a fork of jhotdraw from http://sourceforge.net/projects/jhotdraw.
+
+
+## Lectures without labs
+6,8 
+

@@ -1,17 +1,10 @@
-| **Domain Class**         | **Responsibility**                                                                   |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| **Drawing**              | Represents the drawing model and stores the figures contained in the drawing.        |
-| **DefaultDrawing**       | Concrete implementation of the drawing model used to manage a collection of figures. |
-| **DrawingEditor**        | Coordinates the active tool, the drawing view, and the editing process.              |
-| **DefaultDrawingEditor** | Concrete editor implementation that manages tools and views during runtime.          |
-| **DrawingView**          | Displays the drawing and supports interaction with figures on screen.                |
-| **DefaultDrawingView**   | Concrete implementation of the drawing view used by the editor.                      |
-| **Figure**               | Abstract representation of a graphical object in the drawing.                        |
-| **RectangleFigure**      | Concrete figure class used to represent rectangles.                                  |
-| **EllipseFigure**        | Concrete figure class used to represent ellipses.                                    |
-| **LineFigure**           | Concrete figure class used to represent lines.                                       |
-| **TextFigure**           | Concrete figure class used to represent text elements.                               |
-| **LineConnectionFigure** | Represents connections between figures.                                              |
-| **Tool**                 | Handles user actions such as selecting, creating, or manipulating figures.           |
-| **Handle**               | Supports direct manipulation of figures, such as resizing or moving them.            |
-| **Connector**            | Defines connection points used when linking figures together.                        |
+| Domain Class | Responsibility |
+| --- | --- |
+| CutAction | Cuts the selected region and places its contents into the system clipboard. Removes the selected element(s) from the canvas. Extends AbstractSelectionAction. |
+| CopyAction | Copies the selected region and places its contents into the system clipboard without removing them from the canvas. Extends AbstractSelectionAction. |
+| PasteAction | Pastes the contents of the system clipboard at the current position on the canvas. Extends AbstractSelectionAction. |
+| DeleteAction | Deletes the selected element(s) permanently from the canvas without storing them in the clipboard. Extends TextAction and uses EditableComponent. |
+| DuplicateAction | Duplicates the selected region and places the copy directly onto the canvas. Extends AbstractSelectionAction. |
+| AbstractSelectionAction | Abstract base class for all selection-dependent actions. Manages the target component and enables/disables actions based on whether a selection exists. Parent of CutAction, CopyAction, PasteAction, and DuplicateAction. |
+| EditableComponent | Interface that defines the contract for any component that supports editing operations. Declares methods for cut, copy, paste, delete, and duplicate. Used by DeleteAction and DuplicateAction. |
+| ClipboardUtil | Utility class that provides access to the system clipboard. Used by CutAction, CopyAction, and PasteAction to read from and write clipboard content. |
