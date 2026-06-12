@@ -55,11 +55,30 @@ public abstract class AlignAction extends AbstractSelectedAction {
         fireUndoableEditHappened(edit);
     }
 
-    protected abstract void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds);
+    // Template method — owns the loop, calls the hook
+    protected void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds) {
+        for (Figure f : getView().getSelectedFigures()) {
+            Rectangle2D.Double b = f.getBounds();
+            double[] t = computeTranslation(b, selectionBounds);
+            applyTransform(f, t[0], t[1]);
+        }
+    }
 
-    /**
-     * Returns the bounds of the selected figures.
-     */
+    // Hook — each subclass only provides dx and dy
+    protected abstract double[] computeTranslation(Rectangle2D.Double figureBounds,
+                                                    Rectangle2D.Double selectionBounds);
+
+    // Extracted helper — single place for transform + undo event
+    protected void applyTransform(Figure f, double dx, double dy) {
+        if (f.isTransformable()) {
+            f.willChange();
+            AffineTransform tx = new AffineTransform();
+            tx.translate(dx, dy);
+            f.transform(tx);
+            f.changed();
+            fireUndoableEditHappened(new TransformEdit(f, tx));
+        }
+    }
     protected Rectangle2D.Double getSelectionBounds() {
         Rectangle2D.Double bounds = null;
         for (Figure f : getView().getSelectedFigures()) {
@@ -71,7 +90,6 @@ public abstract class AlignAction extends AbstractSelectedAction {
         }
         return bounds;
     }
-
     public static class North extends AlignAction {
 
         private static final long serialVersionUID = 1L;
@@ -87,19 +105,8 @@ public abstract class AlignAction extends AbstractSelectedAction {
         }
 
         @Override
-        protected void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds) {
-            double y = selectionBounds.y;
-            for (Figure f : getView().getSelectedFigures()) {
-                if (f.isTransformable()) {
-                    f.willChange();
-                    Rectangle2D.Double b = f.getBounds();
-                    AffineTransform tx = new AffineTransform();
-                    tx.translate(0, y - b.y);
-                    f.transform(tx);
-                    f.changed();
-                    fireUndoableEditHappened(new TransformEdit(f, tx));
-                }
-            }
+        protected double[] computeTranslation(Rectangle2D.Double b, Rectangle2D.Double selectionBounds) {
+            return new double[]{ 0, selectionBounds.y - b.y };
         }
     }
 
@@ -118,19 +125,8 @@ public abstract class AlignAction extends AbstractSelectedAction {
         }
 
         @Override
-        protected void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds) {
-            double x = selectionBounds.x + selectionBounds.width;
-            for (Figure f : getView().getSelectedFigures()) {
-                if (f.isTransformable()) {
-                    f.willChange();
-                    Rectangle2D.Double b = f.getBounds();
-                    AffineTransform tx = new AffineTransform();
-                    tx.translate(x - b.x - b.width, 0);
-                    f.transform(tx);
-                    f.changed();
-                    fireUndoableEditHappened(new TransformEdit(f, tx));
-                }
-            }
+        protected double[] computeTranslation(Rectangle2D.Double b, Rectangle2D.Double selectionBounds) {
+            return new double[]{ selectionBounds.x + selectionBounds.width - b.x - b.width, 0 };
         }
     }
 
@@ -149,22 +145,10 @@ public abstract class AlignAction extends AbstractSelectedAction {
         }
 
         @Override
-        protected void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds) {
-            double x = selectionBounds.x;
-            for (Figure f : getView().getSelectedFigures()) {
-                if (f.isTransformable()) {
-                    f.willChange();
-                    Rectangle2D.Double b = f.getBounds();
-                    AffineTransform tx = new AffineTransform();
-                    tx.translate(x - b.x, 0);
-                    f.transform(tx);
-                    f.changed();
-                    fireUndoableEditHappened(new TransformEdit(f, tx));
-                }
-            }
+        protected double[] computeTranslation(Rectangle2D.Double b, Rectangle2D.Double selectionBounds) {
+            return new double[]{ selectionBounds.x - b.x, 0 };
         }
     }
-
     public static class South extends AlignAction {
 
         private static final long serialVersionUID = 1L;
@@ -180,19 +164,8 @@ public abstract class AlignAction extends AbstractSelectedAction {
         }
 
         @Override
-        protected void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds) {
-            double y = selectionBounds.y + selectionBounds.height;
-            for (Figure f : getView().getSelectedFigures()) {
-                if (f.isTransformable()) {
-                    f.willChange();
-                    Rectangle2D.Double b = f.getBounds();
-                    AffineTransform tx = new AffineTransform();
-                    tx.translate(0, y - b.y - b.height);
-                    f.transform(tx);
-                    f.changed();
-                    fireUndoableEditHappened(new TransformEdit(f, tx));
-                }
-            }
+        protected double[] computeTranslation(Rectangle2D.Double b, Rectangle2D.Double selectionBounds) {
+            return new double[]{ 0, selectionBounds.y + selectionBounds.height - b.y - b.height };
         }
     }
 
@@ -211,19 +184,8 @@ public abstract class AlignAction extends AbstractSelectedAction {
         }
 
         @Override
-        protected void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds) {
-            double y = selectionBounds.y + selectionBounds.height / 2;
-            for (Figure f : getView().getSelectedFigures()) {
-                if (f.isTransformable()) {
-                    f.willChange();
-                    Rectangle2D.Double b = f.getBounds();
-                    AffineTransform tx = new AffineTransform();
-                    tx.translate(0, y - b.y - b.height / 2);
-                    f.transform(tx);
-                    f.changed();
-                    fireUndoableEditHappened(new TransformEdit(f, tx));
-                }
-            }
+        protected double[] computeTranslation(Rectangle2D.Double b, Rectangle2D.Double selectionBounds) {
+            return new double[]{ 0, selectionBounds.y + selectionBounds.height / 2 - b.y - b.height / 2 };
         }
     }
 
@@ -242,19 +204,8 @@ public abstract class AlignAction extends AbstractSelectedAction {
         }
 
         @Override
-        protected void alignFigures(Collection<Figure> selectedFigures, Rectangle2D.Double selectionBounds) {
-            double x = selectionBounds.x + selectionBounds.width / 2;
-            for (Figure f : getView().getSelectedFigures()) {
-                if (f.isTransformable()) {
-                    f.willChange();
-                    Rectangle2D.Double b = f.getBounds();
-                    AffineTransform tx = new AffineTransform();
-                    tx.translate(x - b.x - b.width / 2, 0);
-                    f.transform(tx);
-                    f.changed();
-                    fireUndoableEditHappened(new TransformEdit(f, tx));
-                }
-            }
+        protected double[] computeTranslation(Rectangle2D.Double b, Rectangle2D.Double selectionBounds) {
+            return new double[]{ selectionBounds.x + selectionBounds.width / 2 - b.x - b.width / 2, 0 };
         }
     }
 }
