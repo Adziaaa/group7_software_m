@@ -20,7 +20,8 @@ import org.jhotdraw.beans.WeakPropertyChangeListener;
 /**
  * {@code AbstractSelectionAction} acts on the selection of a target component.
  * <p>
- * By default, the action is disabled when the target component is disabled or has
+ * By default, the action is disabled when the target component is disabled or
+ * has
  * no selection. If the target component is null, updateEnabled does nothing.
  * You can change this behavior by overriding method {@code updateEnabled()}.
  * <p>
@@ -33,7 +34,8 @@ import org.jhotdraw.beans.WeakPropertyChangeListener;
  * <em>Framework</em><br>
  * The interfaces and classes listed below work together:
  * <br>
- * Contract: {@link org.jhotdraw.gui.EditableComponent}, {@code JTextComponent}.<br>
+ * Contract: {@link org.jhotdraw.gui.EditableComponent},
+ * {@code JTextComponent}.<br>
  * Client: {@link org.jhotdraw.action.edit.AbstractSelectionAction},
  * {@link org.jhotdraw.action.edit.DeleteAction},
  * {@link org.jhotdraw.action.edit.DuplicateAction},
@@ -61,7 +63,7 @@ public abstract class AbstractSelectionAction extends AbstractAction {
      * Creates a new instance which acts on the specified component.
      *
      * @param target The target of the action. Specify null for the currently
-     * focused component.
+     *               focused component.
      */
     public AbstractSelectionAction(JComponent target) {
         this.target = target;
@@ -94,7 +96,8 @@ public abstract class AbstractSelectionAction extends AbstractAction {
     protected JComponent getTargetComponent() {
         JComponent c = target;
 
-        if (c == null && KeyboardFocusManager.getCurrentKeyboardFocusManager().getPermanentFocusOwner() instanceof JComponent) {
+        if (c == null && KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .getPermanentFocusOwner() instanceof JComponent) {
             c = (JComponent) KeyboardFocusManager.getCurrentKeyboardFocusManager().getPermanentFocusOwner();
         }
 

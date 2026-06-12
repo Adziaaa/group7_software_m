@@ -34,7 +34,8 @@ import org.jhotdraw.util.*;
  * <em>Framework</em><br>
  * The interfaces and classes listed below work together:
  * <br>
- * Contract: {@link org.jhotdraw.gui.EditableComponent}, {@code JTextComponent}.<br>
+ * Contract: {@link org.jhotdraw.gui.EditableComponent},
+ * {@code JTextComponent}.<br>
  * Client: {@link org.jhotdraw.action.edit.AbstractSelectionAction},
  * {@link org.jhotdraw.action.edit.DeleteAction},
  * {@link org.jhotdraw.action.edit.DuplicateAction},
@@ -61,7 +62,7 @@ public class DuplicateAction extends AbstractSelectionAction {
      * Creates a new instance which acts on the specified component.
      *
      * @param target The target of the action. Specify null for the currently
-     * focused component.
+     *               focused component.
      */
     public DuplicateAction(JComponent target) {
         super(target);
