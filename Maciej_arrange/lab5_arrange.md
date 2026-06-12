@@ -25,7 +25,7 @@ I traced every place that constructs or references the two actions to confirm wh
 | `samples/svg` `SVGApplicationModel` | constructor + `.ID` in action map / menu | No |
 | `samples/odg`, `samples/net`, `samples/pert`, `samples/draw` panels | constructor | No |
 
-Because the **public contract was preserved** - the one-argument constructor `(DrawingEditor)`, the `ID` constants, and the public static helpers `bringToFront(...)` / `sendToBack(...)` all stayed the same - **no secondary modifications were required**. The actual change set (`AbstractArrangeAction` + the two actions) equals the estimated impact set from the earlier impact-analysis lab. This is the ideal actualization outcome: the change is contained and does not ripple outward.
+Because the **public contract was preserved** - the one-argument constructor `(DrawingEditor)`, the `ID` constants, and the public static helpers `bringToFront(...)` / `sendToBack(...)` all stayed the same - **no secondary modifications were required**. Comparing the actual change set with the estimate: the two **existing** classes that changed (`BringToFrontAction`, `SendToBackAction`) match the estimated impact set from the impact-analysis lab exactly; the refactoring **additionally introduced one new class** (`AbstractArrangeAction`) that impact analysis could not have predicted, since it did not yet exist; and **nothing else propagated**. This is close to the ideal actualization outcome: the change is contained to the action package and does not ripple outward.
 
 ---
 
