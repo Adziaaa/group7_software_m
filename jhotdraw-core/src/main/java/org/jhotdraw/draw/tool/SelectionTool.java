@@ -58,24 +58,16 @@ public class SelectionTool extends AbstractTool {
      */
     private Tool tracker;
     /**
-     * The tracker encapsulates the current state of the SelectionTool.
+     * Factory for creating and managing tracker instances.
      */
-    private HandleTracker handleTracker;
-    /**
-     * The tracker encapsulates the current state of the SelectionTool.
-     */
-    private SelectAreaTracker selectAreaTracker;
-    /**
-     * The tracker encapsulates the current state of the SelectionTool.
-     */
-    private DragTracker dragTracker;
+    private SelectionToolTrackerFactory trackerFactory;
 
     private class TrackerHandler extends ToolAdapter {
 
         @Override
         public void toolDone(ToolEvent event) {
             // Empty
-            Tool newTracker = getSelectAreaTracker();
+            Tool newTracker = trackerFactory.getSelectAreaTracker();
             if (newTracker != null) {
                 if (tracker != null) {
                     tracker.deactivate(getEditor());
@@ -119,7 +111,8 @@ public class SelectionTool extends AbstractTool {
      * Creates a new instance.
      */
     public SelectionTool() {
-        tracker = getSelectAreaTracker();
+        trackerFactory = new SelectionToolTrackerFactory(this);
+        tracker = trackerFactory.getSelectAreaTracker();
         trackerHandler = new TrackerHandler();
         tracker.addToolListener(trackerHandler);
     }
@@ -230,7 +223,7 @@ public class SelectionTool extends AbstractTool {
             Handle handle = view.findHandle(anchor);
             Tool newTracker = null;
             if (handle != null) {
-                newTracker = getHandleTracker(handle);
+                newTracker = trackerFactory.getHandleTracker(handle);
             } else {
                 Figure figure;
                 Drawing drawing = view.getDrawing();
@@ -274,13 +267,13 @@ public class SelectionTool extends AbstractTool {
                     }
                 }
                 if (figure != null && figure.isSelectable()) {
-                    newTracker = getDragTracker(figure);
+                    newTracker = trackerFactory.getDragTracker(figure);
                 } else {
                     if (!evt.isShiftDown()) {
                         view.clearSelection();
                         view.setHandleDetailLevel(0);
                     }
-                    newTracker = getSelectAreaTracker();
+                    newTracker = trackerFactory.getSelectAreaTracker();
                 }
             }
             if (newTracker != null) {
@@ -303,62 +296,42 @@ public class SelectionTool extends AbstractTool {
     }
 
     /**
-     * Method to get a {@code HandleTracker} which handles user interaction
-     * for the specified handle.
+     * Returns the factory used to create tracker instances.
+     *
+     * @return The SelectionToolTrackerFactory.
      */
-    protected HandleTracker getHandleTracker(Handle handle) {
-        if (handleTracker == null) {
-            handleTracker = new DefaultHandleTracker();
-        }
-        handleTracker.setHandles(handle, getView().getCompatibleHandles(handle));
-        return handleTracker;
-    }
-
-    /**
-     * Method to get a {@code DragTracker} which handles user interaction
-     * for dragging the specified figure.
-     */
-    protected DragTracker getDragTracker(Figure f) {
-        if (dragTracker == null) {
-            dragTracker = new DefaultDragTracker();
-        }
-        dragTracker.setDraggedFigure(f);
-        return dragTracker;
-    }
-
-    /**
-     * Method to get a {@code SelectAreaTracker} which handles user interaction
-     * for selecting an area on the drawing.
-     */
-    protected SelectAreaTracker getSelectAreaTracker() {
-        if (selectAreaTracker == null) {
-            selectAreaTracker = new DefaultSelectAreaTracker();
-        }
-        return selectAreaTracker;
+    public SelectionToolTrackerFactory getTrackerFactory() {
+        return trackerFactory;
     }
 
     /**
      * Method to set a {@code HandleTracker}. If you specify null, the
      * {@code SelectionTool} uses the {@code DefaultHandleTracker}.
+     * <p>
+     * Delegates to the tracker factory.
      */
     public void setHandleTracker(HandleTracker newValue) {
-        handleTracker = newValue;
+        trackerFactory.setHandleTracker(newValue);
     }
 
     /**
      * Method to set a {@code SelectAreaTracker}. If you specify null, the
      * {@code SelectionTool} uses the {@code DefaultSelectAreaTracker}.
+     * <p>
+     * Delegates to the tracker factory.
      */
     public void setSelectAreaTracker(SelectAreaTracker newValue) {
-        selectAreaTracker = newValue;
+        trackerFactory.setSelectAreaTracker(newValue);
     }
 
     /**
      * Method to set a {@code DragTracker}. If you specify null, the
      * {@code SelectionTool} uses the {@code DefaultDragTracker}.
+     * <p>
+     * Delegates to the tracker factory.
      */
     public void setDragTracker(DragTracker newValue) {
-        dragTracker = newValue;
+        trackerFactory.setDragTracker(newValue);
     }
 
     /**
